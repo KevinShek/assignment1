@@ -1,0 +1,12 @@
+# Window W H
+Window 1280 720 [int]
+# Font F S R G B
+Font D:\\projects\\coding_for_fun\\cmake_learning\\assignment_1_comp43000\\src\\fonts\\SacrificeDemo.ttf 18 255 255 255 [int]
+# Circle N [string] initial position (X,Y) [float] intial speed (SX,SY) [float] R G B [int] R [float]
+Circle CGreen 100 100 -3 2 0 255 0 50
+Circle CBlue 200 200 2 4 0 0 255 100
+Circle CPurple 300 300 -2 -1 255 0 255 75
+# Rectangle N initial position (X,Y) [float] intial speed (SX,SY) [float] R G B [int] W [float] H [float]
+Rectangle RRed 200 200 4 4 255 0 0 50 25
+Rectangle RGrey 300 250 -2 2 100 100 100 50 100
+Rectangle RTeal 200 200 -2 -2 0 255 255 100 100
