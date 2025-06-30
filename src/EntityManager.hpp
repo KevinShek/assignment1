@@ -7,7 +7,7 @@ using EntityVec = std::vector<std::shared_ptr<Entity>>;
 class EntityManager
 {
     EntityVec m_entities;
-    EntityVec m_entituesToAdd;
+    EntityVec m_entitiesToAdd;
     std::map<std::string, EntityVec> m_entityMap;
     size_t m_totalEntities = 0;
 
@@ -32,9 +32,9 @@ public:
 
         // remove dead entities from each vector in the entity map
         // C++20 way of iterating through [key,value] pairs in a map
-        for (auto &[tag, EntityVec : m_entityMap])
+        for (auto& [tag, entityVec] : m_entityMap)
         {
-            removeDeadEntities(EntityVec);
+            removeDeadEntities(entityVec);
         }
     }
 

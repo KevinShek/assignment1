@@ -1,1 +1,3 @@
-The way this differ from what Dave wanted, I have done it and split them apart into different files for different classes and struct. This is not the optimal method of doing things but a learning experience for working with C++ for myself. Thank you for having a look.
+From COMP4300 Game Programming course found on youtube - https://youtu.be/-ugbLQlw_VM?si=0Ri8qIUXbwopQyPa 
+
+I have used git add submodules for the dependencies.

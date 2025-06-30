@@ -19,7 +19,7 @@ public:
 
 	// allow automatic converrsion to sf::Vector2
 	// this lets us pass Vec2 into sfml functions
-	operator sf::Vector2<T>(x, y)
+	operator sf::Vector2<T>()
 	{
 		return sf::Vector2<T>(x, y);
 	}
@@ -86,4 +86,4 @@ public:
 	}
 };
 
-using Vec2f = vec2<float>;
+using Vec2f = Vec2<float>;

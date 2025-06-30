@@ -3,7 +3,7 @@
 // could not see all the include so the list below is assumption what it is
 
 #include "Components.hpp"
-#include "EmtityManager.hpp"
+#include "EntityManager.hpp"
 #include "Entity.hpp"
 #include "Vec2.hpp"
 #include <SFML/Graphics.hpp>
@@ -11,7 +11,7 @@
 #include "imgui-SFML.h"
 
 struct PlayerConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V; float S; };
-struct EnemyConfig { int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L SI; float SMIN, SMAX; };
+struct EnemyConfig { int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L, SI; float SMIN, SMAX; };
 struct BulletConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V, L; float S; };
 
 class Game

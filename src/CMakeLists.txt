@@ -1,2 +1,11 @@
-add_executable(example_exe main.cpp)
-target_link_libraries(example_exe PRIVATE ImGui-SFML::ImGui-SFML)
+add_executable(assignment2 
+main.cpp
+Game.cpp
+Game.h
+Vec2.hpp
+Entity.hpp
+EntityManager.hpp
+Components.hpp
+config.txt
+)
+target_link_libraries(assignment2 PRIVATE ImGui-SFML::ImGui-SFML)

@@ -16,11 +16,11 @@ void Game::init(const std::string& path)
 	m_window.create(sf::VideoMode(1280, 720), "Assignment 2");
 	m_window.setFramerateLimit(60);
 
-	ImGui::SMFL::Init(m_window);
+	ImGui::SFML::Init(m_window);
 
 	// scale the imgui ui and text size by 2
 	ImGui::GetStyle().ScaleAllSizes(2.0f);
-	ImGui::GetI0().FontGlobalScale = 2.0f;
+	ImGui::GetIO().FontGlobalScale = 2.0f;
 
 	spawnPlayer();
 }
@@ -29,7 +29,7 @@ std::shared_ptr<Entity> Game::player()
 {
 	auto&& players = m_entities.getEntities("player");
 
-	assert(players.size() == 1);
+	//assert(players.size() == 1);
 
 	return players.front();
 }
@@ -52,6 +52,7 @@ void Game::run()
 		sCollision();
 		sUserInput();
 		sGUI();
+		sRender();
 
 		// incurment the current frame 
 		// may need to be moved when paused implemented
@@ -74,7 +75,7 @@ void Game::spawnPlayer()
 	auto entity = m_entities.addEntity("player");
 
 	// Give this entity a Tranform so it spawns at (200,200) with velocity (1,1) and angle (0)
-	entity-><CTransform>(Vec2f(200.0f, 200.0f), Vec2f(1.0f, 1.0f), 0.0f);
+	entity->add<CTransform>(Vec2f(200.0f, 200.0f), Vec2f(1.0f, 1.0f), 0.0f);
 
 	// The entity's shape will have radius 32, 8 sides, dark grey fill and red outline of thickness of 4
 	entity->add<CShape>(32.0f, 8, sf::Color(10, 10, 10), sf::Color(255, 0, 0), 4.0f);
@@ -117,13 +118,13 @@ void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity)
 	// TODO: implement your own special weapon
 }
 
-void Game::sMovement();
+void Game::sMovement()
 {
 	// TODO: implement all entity movement in this function
 	// you should read the m_player->cInput component to determine if the player is moving
 
 	// Sample movement speed update
-	auto& tranform = player()->get<CTransform>();
+	auto& transform = player()->get<CTransform>();
 	transform.pos.x += transform.velocity.x;
 	transform.pos.y += transform.velocity.y;
 }
@@ -170,7 +171,7 @@ void Game::sRender()
 	player()->get<CShape>().circle.setPosition(player()->get<CTransform>().pos);
 
 	// set the rotation of the shape based on the entity's transform->angle
-	player()->get<CTransform>.angle += 1.0f;
+	player()->get<CTransform>().angle += 1.0f;
 	player()->get<CShape>().circle.setRotation(player()->get<CTransform>().angle);
 
 	// draw the entity's sf::CircleShape
@@ -228,7 +229,7 @@ void Game::sUserInput()
 		if (event.type == sf::Event::MouseButtonPressed)
 		{
 			// this line ignores mouse events if ImGui is the thing being clicked
-			if (ImGui::GetI0().WantCaptureMouse) { continue; }
+			if (ImGui::GetIO().WantCaptureMouse) { continue; }
 			
 			if (event.mouseButton.button == sf::Mouse::Left)
 			{

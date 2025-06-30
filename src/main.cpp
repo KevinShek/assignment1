@@ -1,4 +1,4 @@
-#include <SMFL/Graphics.hpp>
+#include <SFML/Graphics.hpp>
 
 #include "Game.h"
 

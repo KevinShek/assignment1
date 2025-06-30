@@ -9,7 +9,7 @@ public:
     bool exists = false;
 };
 
-class CTransform : public Compoent
+class CTransform : public Component
 {
 public:
     Vec2f pos = {0.0, 0.0};
@@ -27,12 +27,12 @@ public:
 
     CShape() = default;
     // at this point regarding the "thickness" variable might be incorrect as I cant see the code anymore from the video which is off to the side
-    CShape(float radius, size_t points, const sf::Color &fill, const sf::Color &outline, int thickness) : circle(radius, points)
+    CShape(float radius, size_t points, const sf::Color& fill, const sf::Color& outline, int thickness) : circle(radius, points)
     {
         circle.setFillColor(fill);
         circle.setOutlineColor(outline);
         circle.setOutlineThickness(thickness);
-        circle.setOrigin(radius, radius)
+        circle.setOrigin(radius, radius);
     }
 };
 
