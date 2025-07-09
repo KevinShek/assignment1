@@ -1,10 +1,5 @@
-# Window W H framerate fullscreen
-Window 1920 1080 60 0 
-# Font F S R G B
-Font D:\\projects\\coding_for_fun\\cmake_learning\\assignment_1_comp43000\\src\\fonts\\SacrificeDemo.ttf 24 255 255 255
-# Player Shape Radius [int] Collision Radius [int] speed [float] Fill Color (FR,FG,FB) [int] Outline Color (OR,OG,OB) [int] Outline Thickness [int] Shape Vertices [int]
+Window 1920 1080 60 0
+Font ../fonts/SacrificeDemo.ttf 24 255 255 255
 Player 32 32 5 5 5 5 255 0 0 4 8
-# Player Shape Radius [int] Collision Radius [int] speed (Smin, Smax) [float] Outline Color (OR,OG,OB) [int] Outline Thickness [int] Min/Max Vertices (Vmin, Vmax) [int] Small Lifespan [int] Spawn Interval [int]
 Enemy 32 32 3 3 255 255 255 2 3 8 90 60
-# Player Shape Radius [int] Collision Radius [int] speed [float] Fill Color (FR,FG,FB) [int] Outline Color (OR,OG,OB) [int] Outline Thickness [int] Shape Vertices [int] Lifespan [int]
 Bullet 10 10 20 255 255 255 255 255 255 2 20 90

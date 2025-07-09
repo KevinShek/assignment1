@@ -26,63 +26,91 @@ public:
 
 	Vec2 operator+(const Vec2 &rhs) const
 	{
-		// TODO
-		return Vec2();
+		return Vec2(x + rhs.x, y + rhs.y);
+	}
+
+	Vec2 operator+(const T val) const
+	{
+		return Vec2(x + val, y + val);
 	}
 
 	Vec2 operator-(const Vec2 &rhs) const
 	{
-		// TODO
-		return Vec2();
+		return Vec2(x - rhs.x, y - rhs.y);
 	}
 
-	Vec2 operator/(const Vec2 &rhs) const
+	Vec2 operator-(const T val) const
 	{
-		// TODO
-		return Vec2();
+		return Vec2(x - val, y - val);
 	}
 
-	Vec2 operator*(const Vec2 &rhs) const
+	Vec2 operator/(const T val) const
 	{
-		// TODO
-		return Vec2();
+		return Vec2(x / val, y / val);
+	}
+
+	Vec2 operator*(const T val) const
+	{
+		return Vec2(x * val, y / val);
 	}
 
 	bool operator==(const Vec2 &rhs) const
 	{
-		// TODO
+		if (x == rhs.x && y == rhs.y)
+		{
+			return true;
+		}
 		return false;
 	}
 
 	bool operator!=(const Vec2 &rhs) const
 	{
-		// TODO
+		if (x != rhs.x && y != rhs.y)
+		{
+			return true;
+		}
 		return false;
 	}
 
 	void operator+=(const Vec2 &rhs)
 	{
-		// TODO
+		x += rhs.x;
+		y += rhs.y;
+	}
+
+	void operator+=(const T val)
+	{
+		x += val;
+		y += val;
 	}
 
 	void operator-=(const Vec2 &rhs)
 	{
-		// TODO
+		x -= rhs.x;
+		y -= rhs.y;
+	}
+
+	void operator-=(const T val)
+	{
+		x -= val;
+		y -= val;
 	}
 
 	void operator*=(const T val)
 	{
-		// TODO
+		x *= val;
+		y *= val;
 	}
 
 	void operator/=(const T val)
 	{
-		// TODO
+		x /= val;
+		y /= val;
 	}
 
 	float dist(const Vec2 &rhs) const
 	{
-		// TODO
+		return sqrtf((x - rhs.x) ^ 2 + (y - rhs.y) ^ 2);
 	}
 };
 

@@ -13,9 +13,19 @@ class EntityManager
 
     void removeDeadEntities(EntityVec &vec)
     {
-        // TODO: remove all dead entities from the input vector
+        // remove all dead entities from the input vector
         // this is called by the update() function
         // std::remove_if
+        EntityVec newVec;
+        for (auto &entity : vec)
+        {
+            // vec.erase(std::remove_if(vec.begin(), vec.end(), [](Entity& ent) { return ent.m_active == false; }), vec.end());
+            if (entity.get()->m_active == true)
+            {
+                newVec.push_back(entity);
+            }
+        }
+        vec = newVec;
     }
 
 public:
@@ -23,19 +33,25 @@ public:
 
     void update()
     {
-        // TODO: add entities from m_entitiesToAdd the proper location(s)
+        // add entities from m_entitiesToAdd the proper location(s)
         // - add them to the vector of all entities
         // - add them to the vector inside the map, with the tag as a key
+        for (auto& entity : m_entitiesToAdd)
+        {
+            m_entities.push_back(entity);
+            m_entityMap[entity->tag()].push_back(entity); // grabbing the tag from the entity class to be used as a way to map the vector
+        }
 
         // remove dead entities from the vector of all entities
         removeDeadEntities(m_entities);
 
         // remove dead entities from each vector in the entity map
         // C++20 way of iterating through [key,value] pairs in a map
-        for (auto& [tag, entityVec] : m_entityMap)
+        for (auto &[tag, entityVec] : m_entityMap)
         {
             removeDeadEntities(entityVec);
         }
+        m_entitiesToAdd.clear();
     }
 
     std::shared_ptr<Entity> addEntity(const std::string &tag)
@@ -56,11 +72,13 @@ public:
         return entity;
     }
 
+    // grab all the entities
     const EntityVec &getEntities()
     {
         return m_entities;
     }
 
+    // bookkeep all the entities within the manager
     const EntityVec &getEntities(const std::string &tag)
     {
         if (m_entityMap.find(tag) == m_entityMap.end())
