@@ -39,7 +39,6 @@ public:
         for (auto& entity : m_entitiesToAdd)
         {
             m_entities.push_back(entity);
-            m_entityMap[entity->tag()].push_back(entity); // grabbing the tag from the entity class to be used as a way to map the vector
         }
 
         // remove dead entities from the vector of all entities

@@ -91,14 +91,30 @@ void Game::run()
 		ImGui::SFML::Update(m_window, m_deltaClock.restart());
 
 		if (m_paused == false) {
-			sEnemySpawner();
-			sMovement();
-			sCollision();
-			sLifespan();
+			if (m_guiConfig.activeSpawning) {
+				sEnemySpawner();
+			}
+			if (m_guiConfig.activeMovement) {
+				sMovement();
+			}
+			if (m_guiConfig.activeCollision) {
+				sCollision();
+			}
+			if (m_guiConfig.activeLifespan) {
+				sLifespan();
+			}
 		}
 		sUserInput();
-		sGUI();
-		sRender();
+		if (m_guiConfig.activeGUI) {
+			sGUI();
+		}
+		if (m_guiConfig.activeRendering) {
+			sRender();
+		}
+		else {
+			ImGui::SFML::Render(m_window);
+			m_window.display();
+		}
 
 		// incurment the current frame
 		// may need to be moved when paused implemented
@@ -119,12 +135,12 @@ void Game::spawnPlayer()
 	auto entity = m_entities.addEntity("player");
 
 	// Give this entity a Tranform so it spawns at (200,200) with velocity (1,1) and angle (0)
-	entity->add<CTransform>(Vec2f(m_window.getSize().x/2, m_window.getSize().y/2), Vec2f(m_playerConfig.S, m_playerConfig.S), 0.0f);
+	entity->add<CTransform>(Vec2f(m_window.getSize().x/2, m_window.getSize().y/2), Vec2f(0.0f, 0.0f), 0.0f);
 
 	// The entity's shape will have radius 32, 8 sides, dark grey fill and red outline of thickness of 4
 	entity->add<CShape>(m_playerConfig.SR, m_playerConfig.V, sf::Color(m_playerConfig.FR, m_playerConfig.FG, m_playerConfig.FB), sf::Color(m_playerConfig.OR, m_playerConfig.OG, m_playerConfig.OB), m_playerConfig.OT);
 	entity->add<CCollision>(m_playerConfig.CR);
-	entity->add<CLifespan>(0);
+	//entity->add<CLifespan>(0);
 	// Add an input component to the player so that we can use inputs
 	entity->add<CInput>();
 }
@@ -132,9 +148,18 @@ void Game::spawnPlayer()
 // spawn an enemy at a random position
 void Game::spawnEnemy()
 {
-	// the enemy must be spawned completely within the bounds of the window
-	int randomXOfBound = m_enemyConfig.CR + (rand() % (1 + (m_window.getSize().x - m_enemyConfig.CR) - m_enemyConfig.CR));
-	int randomYOfBound = m_enemyConfig.CR + (rand() % (1 + (m_window.getSize().y - m_enemyConfig.CR) - m_enemyConfig.CR));
+	
+	// the enemy must be spawned completely within the bounds of the window and not on top of player position
+	float minDistance = 10.f;
+	Vec2f distToPlayer;
+	int randomXOfBound = 0, randomYOfBound = 0;
+
+	do {
+		randomXOfBound = m_enemyConfig.CR + (rand() % (1 + (m_window.getSize().x - m_enemyConfig.CR) - m_enemyConfig.CR));
+		randomYOfBound = m_enemyConfig.CR + (rand() % (1 + (m_window.getSize().y - m_enemyConfig.CR) - m_enemyConfig.CR));
+		distToPlayer.x = randomXOfBound - player()->get<CTransform>().pos.x;
+		distToPlayer.y = randomYOfBound - player()->get<CTransform>().pos.y;
+	} while ((std::sqrt((distToPlayer.x * distToPlayer.x) + (distToPlayer.y * distToPlayer.y))) < minDistance);
 	//float randomSpeedAdjacentOfBound = -m_enemyConfig.SMIN + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (m_enemyConfig.SMAX - -m_enemyConfig.SMIN)));
 	//float randomSpeedOppositeOfBound = -m_enemyConfig.SMIN + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (m_enemyConfig.SMAX - -m_enemyConfig.SMIN)));
 	float randomSpeedOfBound = m_enemyConfig.SMIN + static_cast<float>(rand()) / (static_cast<float>(RAND_MAX / (m_enemyConfig.SMAX - m_enemyConfig.SMIN)));
@@ -156,7 +181,8 @@ void Game::spawnEnemy()
 	// enemy properities
 	entity->add<CShape>(m_enemyConfig.SR, randomVecticesOfBound, sf::Color(randomColorROfBound, randomColorGOfBound, randomColorBOfBound), sf::Color(m_enemyConfig.OR, m_enemyConfig.OG, m_enemyConfig.OB), m_enemyConfig.OT);
 	entity->add<CCollision>(m_enemyConfig.CR);
-	entity->add<CLifespan>(0);
+	//entity->add<CLifespan>(0);
+	entity->add<CScore>(randomVecticesOfBound*100);
 	// record when the most recent enemy was spawned
 	m_lastEnemySpawnTime = m_currentFrame;
 }
@@ -167,10 +193,22 @@ void Game::spawnSmallEnemies(std::shared_ptr<Entity> e)
 	auto& bigEnemyTrans = e->get<CTransform>();
 	auto& bigEnemyShape = e->get<CShape>();
 	// TODO: spawn small enemies at the location of the input enemy e
-	auto smallEnemy = m_entities.addEntity("senemy");
-	smallEnemy->add<CTransform>(Vec2f(bigEnemyTrans.pos.x, bigEnemyTrans.pos.y), Vec2f(bigEnemyTrans.velocity.x, bigEnemyTrans.velocity.y), 0.f);
-	smallEnemy->add<CShape>(m_enemyConfig.SR/2, bigEnemyShape.circle.getPointCount(), bigEnemyShape.circle.getFillColor(), bigEnemyShape.circle.getOutlineColor(), bigEnemyShape.circle.getOutlineThickness());
-	smallEnemy->add<CLifespan>(m_enemyConfig.L);
+	int numberOfEdges = bigEnemyShape.circle.getPointCount();
+
+	for (int numberOfEdge = 0; numberOfEdge < numberOfEdges; numberOfEdge++) {
+		auto smallEnemy = m_entities.addEntity("senemy");
+		float angleOfEdge = (360.f / numberOfEdges) * numberOfEdge * (3.14159265359 / 180);
+		float posOfEdgeX = (m_enemyConfig.SR * cos(angleOfEdge)) + bigEnemyTrans.pos.x;
+		float posOfEdgeY = (m_enemyConfig.SR * sin(angleOfEdge)) + bigEnemyTrans.pos.y;
+		// The speed has to be the same otherwise when the big enemy is destoryed it does not retain its orginial shape
+		float speedOfEdgeX = m_enemyConfig.SMIN/4 * cos(angleOfEdge);
+		float speedOfEdgeY = m_enemyConfig.SMIN/4 * sin(angleOfEdge);
+		std::cout << numberOfEdges << " " << numberOfEdge << " " << posOfEdgeX << " " << posOfEdgeY << " " << angleOfEdge << std::endl;
+		smallEnemy->add<CTransform>(Vec2f(bigEnemyTrans.pos.x, bigEnemyTrans.pos.y), Vec2f(speedOfEdgeX, speedOfEdgeY), angleOfEdge);
+		smallEnemy->add<CShape>(m_enemyConfig.SR / 2, numberOfEdges, bigEnemyShape.circle.getFillColor(), bigEnemyShape.circle.getOutlineColor(), bigEnemyShape.circle.getOutlineThickness());
+		smallEnemy->add<CLifespan>(m_enemyConfig.L);
+		smallEnemy->add<CScore>(numberOfEdges * 2 * 100);
+	}
 	// when we create the smaller enemy, we have to read the values of the original enemy
 	// - spawn a number of small enemies equal to the vertices of the original enemy
 	// - set each small enemy to the same color as the original, half the size
@@ -198,31 +236,8 @@ void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity)
 
 void Game::sMovement()
 {
-	// TODO: implement all entity movement in this function
 	// you should read the m_player->cInput component to determine if the player is moving
 	auto &transform = player()->get<CTransform>();
-	// the 2.f comes from the fact you are moving 1 unit towards x axis and y axis meaning when you put that into pythagorean theorrem gives you sqrt(2.f) and you divide by it to reach the disired speed of 5 units per frame even diagonally.
-	//float length = sqrt((transform.velocity.x * transform.velocity.x) + (transform.velocity.y * transform.velocity.y))/ sqrt(2.f);
-	//if (player()->get<CInput>().up == true && player()->get<CInput>().left == true) {
-	//	transform.pos.x -= length;
-	//	transform.pos.y -= length;
-	//}
-	//else if (player()->get<CInput>().up == true && player()->get<CInput>().right == true) {
-	//	transform.pos.x += length;
-	//	transform.pos.y -= length;
-	//}
-	//else if (player()->get<CInput>().down == true && player()->get<CInput>().right == true) {
-	//	transform.pos.x += length;
-	//	transform.pos.y += length;
-	//}
-	//else if (player()->get<CInput>().down == true && player()->get<CInput>().left == true) {
-	//	transform.pos.x -= length;
-	//	transform.pos.y += length;
-	//}
-	//else if (player()->get<CInput>().up == true) {transform.pos.y -= transform.velocity.y;}
-	//else if (player()->get<CInput>().left == true) {transform.pos.x -= transform.velocity.x;}
-	//else if (player()->get<CInput>().down == true) {transform.pos.y += transform.velocity.y;}
-	//else if (player()->get<CInput>().right == true) {transform.pos.x += transform.velocity.x;}
 
 	// this was created as a local because this will reset the movement when nothing has been pressed
 	Vec2f playerDirection(0.0, 0.0);
@@ -232,7 +247,6 @@ void Game::sMovement()
 	if (player()->get<CInput>().left) { playerDirection.x -= 1.0; }
 	if (player()->get<CInput>().down) { playerDirection.y += 1.0; }
 	if (player()->get<CInput>().right) { playerDirection.x += 1.0; }
-
 	//std::cout << player()->get<CInput>().up << " " << player()->get<CInput>().left << std::endl;
 
 	if (playerDirection.x != 0.f || playerDirection.y != 0.f) {
@@ -250,41 +264,23 @@ void Game::sMovement()
 	transform.pos.x = std::max(static_cast<float>(m_playerConfig.SR), std::min(transform.pos.x, static_cast<float>(m_window.getSize().x - m_playerConfig.SR)));
 	transform.pos.y = std::max(static_cast<float>(m_playerConfig.SR), std::min(transform.pos.y, static_cast<float>(m_window.getSize().y - m_playerConfig.SR)));
 
-	// enemy movement and wall collision
-	for (auto& enemy : m_entities.getEntities("enemy")) {
-		auto &enemyMovement = enemy->get<CTransform>();
+	for (auto& entity : m_entities.getEntities()) {
 
-		enemyMovement.pos += enemyMovement.velocity;
-
-		// Bounce off right and left window edges
-		if (m_enemyConfig.SR + enemyMovement.pos.x > m_window.getSize().x || enemyMovement.pos.x - m_enemyConfig.SR  < 0) {
-			enemyMovement.velocity.x = -enemyMovement.velocity.x;
-		}
-		// Bounce off bottom and top window edges
-		if (m_enemyConfig.SR + enemyMovement.pos.y > m_window.getSize().y || enemyMovement.pos.y - m_enemyConfig.SR < 0) {
-			enemyMovement.velocity.y = -enemyMovement.velocity.y;
-		}
-	}
-
-	// bullet movement
-	for (auto& bullet : m_entities.getEntities("bullet")) {
-		auto& bulletMovement = bullet->get<CTransform>();
-		bulletMovement.pos += bulletMovement.velocity;
-		//std::cout << bulletMovement.pos.x << std::endl;
+		auto& entityMovement = entity->get<CTransform>();
+		entityMovement.pos += entityMovement.velocity;
 	}
 }
 
 void Game::sLifespan()
 {
-	// TODO: implement all lifespan functionality
 	for (auto& entity : m_entities.getEntities()) {
+		if (entity->get<CLifespan>().exists) {
 		auto& entityShape = entity->get<CShape>();
 		auto& entityLifeSpan = entity->get<CLifespan>();
-		if (entityLifeSpan.remaining > 0) {
 			if (entityLifeSpan.remaining != 0) {
 				entityLifeSpan.remaining --;
 				float ratio = static_cast<float>(entityLifeSpan.remaining) / static_cast<float>(entityLifeSpan.lifespan);
-				float transparentValue = ratio * 255.f;  // fades out
+				float transparentValue = ratio * 230.f;  // fades out
 				entity->get<CShape>().circle.setFillColor(sf::Color(entityShape.circle.getFillColor().r, entityShape.circle.getFillColor().g, entityShape.circle.getFillColor().b, transparentValue));
 				entity->get<CShape>().circle.setOutlineColor(sf::Color(entityShape.circle.getOutlineColor().r, entityShape.circle.getOutlineColor().g, entityShape.circle.getOutlineColor().b, transparentValue));
 			}
@@ -293,42 +289,82 @@ void Game::sLifespan()
 			}
 		}
 	}
-	// 
-	// for all entities
-	//		if entity has no lifespan component, skip it
-	//		if entity has > 0 remaining lifespan, subtract 1
-	//		if it has lifespan and is alive
-	//			scale its alpha channel properly
-	//		if it has lifespan and its time is up
-	//			destroy the entity
 }
 
 void Game::sCollision()
 {
-	// TODO: implement all proper collisions between entities
+	// implement all proper collisions between entities
 	// be sure to use the collision radius, NOT the shape radius
 	for (auto& bullet : m_entities.getEntities("bullet")) {
 		auto& bulletProp = bullet->get<CTransform>();
 		//bulletProp.pos
 		for (auto& enemy : m_entities.getEntities("enemy")) {
-			auto& enemyProp = enemy->get<CTransform>();
-			Vec2f vectorOfEntities = { (enemyProp.pos.x - bulletProp.pos.x), (enemyProp.pos.y - bulletProp.pos.y) };
-			float distanceOfEntities = std::sqrt(vectorOfEntities.x * vectorOfEntities.x + vectorOfEntities.y * vectorOfEntities.y);
-			if (bullet->get<CCollision>().radius + enemy->get<CCollision>().radius > distanceOfEntities) {
-				enemy->destroy();
-				bullet->destroy();
+			// this is to ensure that this is only performed once if the enemy is active
+			if (enemy.get()->isActive() && bullet.get()->isActive()) {
+				auto& enemyProp = enemy->get<CTransform>();
+				Vec2f vectorOfEntities = { (enemyProp.pos.x - bulletProp.pos.x), (enemyProp.pos.y - bulletProp.pos.y) };
+				float distanceOfEntities = std::sqrt(vectorOfEntities.x * vectorOfEntities.x + vectorOfEntities.y * vectorOfEntities.y);
+				if (bullet->get<CCollision>().radius + enemy->get<CCollision>().radius > distanceOfEntities) {
+					enemy->destroy();
+					bullet->destroy();
+					spawnSmallEnemies(enemy);
+					m_score += enemy->get<CScore>().score;
+				}
+			}
+		}
+		for (auto& smallEnemy : m_entities.getEntities("senemy")) {
+			// this is to ensure that this is only performed once if the enemy is active
+			if (smallEnemy.get()->isActive() && bullet.get()->isActive()) {
+				auto& smallEnemyProp = smallEnemy->get<CTransform>();
+				Vec2f vectorOfSmallEntities = { (smallEnemyProp.pos.x - bulletProp.pos.x), (smallEnemyProp.pos.y - bulletProp.pos.y) };
+				float distanceOfSmallEntities = std::sqrt(vectorOfSmallEntities.x * vectorOfSmallEntities.x + vectorOfSmallEntities.y * vectorOfSmallEntities.y);
+				if (bullet->get<CCollision>().radius + smallEnemy->get<CCollision>().radius > distanceOfSmallEntities) {
+					smallEnemy->destroy();
+					bullet->destroy();
+					m_score += smallEnemy->get<CScore>().score;
+				}
 			}
 		}
 	}
 	for (auto& player : m_entities.getEntities("player")) {
 		for (auto& enemy : m_entities.getEntities("enemy")) {
-			auto& enemyProp = enemy->get<CTransform>();
-			Vec2f vectorOfEnemyandPlayer = { (enemyProp.pos.x - player->get<CTransform>().pos.x), (enemyProp.pos.y - player->get<CTransform>().pos.y) };
-			float distanceOfEnemyandPlayer = std::sqrt(vectorOfEnemyandPlayer.x * vectorOfEnemyandPlayer.x + vectorOfEnemyandPlayer.y * vectorOfEnemyandPlayer.y);
-			if (player->get<CCollision>().radius + enemy->get<CCollision>().radius > distanceOfEnemyandPlayer) {
-				enemy->destroy();
-				player->destroy();
+			// this is to ensure that this is only performed once if the enemy is active
+			if (enemy.get()->isActive()) {
+				auto& enemyProp = enemy->get<CTransform>();
+				Vec2f vectorOfEnemyandPlayer = { (enemyProp.pos.x - player->get<CTransform>().pos.x), (enemyProp.pos.y - player->get<CTransform>().pos.y) };
+				float distanceOfEnemyandPlayer = std::sqrt(vectorOfEnemyandPlayer.x * vectorOfEnemyandPlayer.x + vectorOfEnemyandPlayer.y * vectorOfEnemyandPlayer.y);
+				if (player->get<CCollision>().radius + enemy->get<CCollision>().radius > distanceOfEnemyandPlayer) {
+					enemy->destroy();
+					player->destroy();
+					spawnSmallEnemies(enemy);
+				}
 			}
+		}
+		for (auto& smallEnemy : m_entities.getEntities("senemy")) {
+			// this is to ensure that this is only performed once if the enemy is active
+			if (smallEnemy.get()->isActive()) {
+				auto& smallEnemyProp = smallEnemy->get<CTransform>();
+				Vec2f vectorOfEnemyandPlayer = { (smallEnemyProp.pos.x - player->get<CTransform>().pos.x), (smallEnemyProp.pos.y - player->get<CTransform>().pos.y) };
+				float distanceOfEnemyandPlayer = std::sqrt(vectorOfEnemyandPlayer.x * vectorOfEnemyandPlayer.x + vectorOfEnemyandPlayer.y * vectorOfEnemyandPlayer.y);
+				if (player->get<CCollision>().radius + smallEnemy->get<CCollision>().radius > distanceOfEnemyandPlayer) {
+					smallEnemy->destroy();
+					player->destroy();
+				}
+			}
+		}
+	}
+	// enemy wall collision
+	for (auto& enemy : m_entities.getEntities("enemy")) {
+		auto &enemyMovement = enemy->get<CTransform>();
+		Vec2f checkMovement = enemyMovement.pos + enemyMovement.velocity;
+
+		// Bounce off right and left window edges
+		if (m_enemyConfig.SR + checkMovement.x > m_window.getSize().x || checkMovement.x - m_enemyConfig.SR  < 0) {
+			enemyMovement.velocity.x = -enemyMovement.velocity.x;
+		}
+		// Bounce off bottom and top window edges
+		if (m_enemyConfig.SR + checkMovement.y > m_window.getSize().y || checkMovement.y - m_enemyConfig.SR < 0) {
+			enemyMovement.velocity.y = -enemyMovement.velocity.y;
 		}
 	}
 	if (player().get()->isActive() == false) {
@@ -348,9 +384,64 @@ void Game::sEnemySpawner()
 void Game::sGUI()
 {
 	ImGui::Begin("Geometry Wars");
-
-	ImGui::Text("Stuff Goes Here");
-
+	if (ImGui::BeginTabBar("MainTabBar")) {
+		// first tab menu
+		if (ImGui::BeginTabItem("Systems")) {
+			ImGui::Checkbox("Movement", &m_guiConfig.activeMovement);
+			ImGui::Checkbox("Lifespan", &m_guiConfig.activeLifespan);
+			ImGui::Checkbox("Collision", &m_guiConfig.activeCollision);
+			ImGui::Checkbox("Spawning", &m_guiConfig.activeSpawning);
+			ImGui::SliderInt("Spawn Time", &m_enemyConfig.SP, 0, 300);
+			if (ImGui::Button("Manual Spawn"))
+			{
+				spawnEnemy();
+			}
+			ImGui::Checkbox("GUI", &m_guiConfig.activeGUI);
+			ImGui::Checkbox("Rendering", &m_guiConfig.activeRendering);
+			ImGui::EndTabItem();
+		}
+		// second tab menu
+		if (ImGui::BeginTabItem("Entities")) {
+			if (ImGui::CollapsingHeader("Entities")) {
+				for (const auto& [tag, vec] : m_entities.getEntityMap()) {
+					if (ImGui::CollapsingHeader(tag.c_str())) {
+						for (const auto& entity : vec)
+						{
+							std::string entityLabel = std::to_string(entity->id());
+							ImGui::BeginChild(entityLabel.c_str(), ImVec2(0, 50), true);
+							ImGui::SameLine();
+							ImGui::Text(entityLabel.c_str());
+							ImGui::SameLine();
+							ImGui::Text(tag.c_str());
+							ImGui::SameLine();
+							auto& transform = entity->get<CTransform>();
+							ImGui::InputFloat2("Position" , &transform.pos.x);
+							ImGui::SameLine();
+							ImGui::InputFloat2("Velocity", &transform.velocity.x);
+							ImGui::EndChild();
+						}
+					}
+				}
+			}
+			if (ImGui::CollapsingHeader("All Entities")) {
+				for (const auto& entity : m_entities.getEntities())
+				{
+					std::string entityLabel = std::to_string(entity->id());
+					ImGui::BeginChild(entityLabel.c_str(), ImVec2(0, 50), true);
+					ImGui::SameLine();
+					ImGui::Text(entity->tag().c_str());
+					ImGui::SameLine();
+					auto& transform = entity->get<CTransform>();
+					ImGui::InputFloat2("Position", &transform.pos.x);
+					ImGui::SameLine();
+					ImGui::InputFloat2("Velocity", &transform.velocity.x);
+					ImGui::EndChild();
+				}
+			}
+			ImGui::EndTabItem();
+		}
+		ImGui::EndTabBar();
+	}
 	ImGui::End();
 }
 
@@ -373,9 +464,6 @@ void Game::sRender()
 
 void Game::sUserInput()
 {
-	// TODO: handle user input here
-	// note that you should only be setting the player's input component variables here
-	// you should not implement the player's movement logic here
 	// the movement system will read the variables you set in this function
 
 	sf::Event event;
@@ -390,17 +478,28 @@ void Game::sUserInput()
 			m_running = false;
 		}
 
-		// this checks if the key is still pressed
+		// this checks if the key is still pressed if it does not then it will return false
 		auto& input = player()->add<CInput>();
 		input.up = sf::Keyboard::isKeyPressed(sf::Keyboard::W);
 		input.left = sf::Keyboard::isKeyPressed(sf::Keyboard::A);
 		input.down = sf::Keyboard::isKeyPressed(sf::Keyboard::S);
 		input.right = sf::Keyboard::isKeyPressed(sf::Keyboard::D);
 
-		//this event is triggered when a key is pressed
+		// this event is triggered when a key is pressed
 		if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::P)
 		{
 			setPaused(!m_paused);
+		}
+		// to allow to bring back the GUI when it is switched off
+		if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::G)
+		{
+			m_guiConfig.activeGUI = !m_guiConfig.activeGUI;
+		}
+
+		// update view if the player resize the window
+		if (event.type == sf::Event::Resized) {
+			sf::FloatRect visibleArea(0, 0, event.size.width, event.size.height);
+			m_window.setView(sf::View(visibleArea));
 		}
 
 		if (event.type == sf::Event::MouseButtonPressed)

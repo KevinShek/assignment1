@@ -13,6 +13,7 @@
 struct PlayerConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V; float S; };
 struct EnemyConfig { int SR, CR, OR, OG, OB, OT, VMIN, VMAX, L, SP; float SMIN, SMAX; };
 struct BulletConfig { int SR, CR, FR, FG, FB, OR, OG, OB, OT, V, L; float S; };
+struct GuiConfig { bool activeMovement = true; bool activeLifespan = true; bool activeCollision = true; bool activeSpawning = true; bool activeGUI = true; bool activeRendering = true; };
 
 class Game
 {
@@ -23,6 +24,7 @@ class Game
 	PlayerConfig m_playerConfig;
 	EnemyConfig m_enemyConfig;
 	BulletConfig m_bulletConfig;
+	GuiConfig m_guiConfig;
 	sf::Clock m_deltaClock;
 	int m_score = 0;
 	int m_currentFrame = 0;
