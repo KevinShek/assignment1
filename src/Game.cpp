@@ -3,6 +3,7 @@
 #include <iostream>
 #include <fstream>
 #include <algorithm>
+#include <sstream>
 
 Game::Game(const std::string &config)
 {
@@ -84,6 +85,11 @@ void Game::run()
 	// some systems shouldn't (movement / input)
 	while (m_running)
 	{
+		// ensure the player if destroyed will respawn
+		if (player().get()->isActive() == false) {
+			spawnPlayer();
+		}
+
 		// update the entity manager
 		m_entities.update();
 
@@ -192,7 +198,7 @@ void Game::spawnSmallEnemies(std::shared_ptr<Entity> e)
 {
 	auto& bigEnemyTrans = e->get<CTransform>();
 	auto& bigEnemyShape = e->get<CShape>();
-	// TODO: spawn small enemies at the location of the input enemy e
+	//  spawn small enemies at the location of the input enemy e
 	int numberOfEdges = bigEnemyShape.circle.getPointCount();
 
 	for (int numberOfEdge = 0; numberOfEdge < numberOfEdges; numberOfEdge++) {
@@ -280,7 +286,7 @@ void Game::sLifespan()
 			if (entityLifeSpan.remaining != 0) {
 				entityLifeSpan.remaining --;
 				float ratio = static_cast<float>(entityLifeSpan.remaining) / static_cast<float>(entityLifeSpan.lifespan);
-				float transparentValue = ratio * 230.f;  // fades out
+				float transparentValue = ratio * 255.f;  // fades out
 				entity->get<CShape>().circle.setFillColor(sf::Color(entityShape.circle.getFillColor().r, entityShape.circle.getFillColor().g, entityShape.circle.getFillColor().b, transparentValue));
 				entity->get<CShape>().circle.setOutlineColor(sf::Color(entityShape.circle.getOutlineColor().r, entityShape.circle.getOutlineColor().g, entityShape.circle.getOutlineColor().b, transparentValue));
 			}
@@ -367,9 +373,6 @@ void Game::sCollision()
 			enemyMovement.velocity.y = -enemyMovement.velocity.y;
 		}
 	}
-	if (player().get()->isActive() == false) {
-		spawnPlayer();
-	}
 }
 
 void Game::sEnemySpawner()
@@ -379,6 +382,34 @@ void Game::sEnemySpawner()
 	{
 		spawnEnemy();
 	}
+}
+
+void Game::sEntityList(std::shared_ptr<Entity> entity)
+{
+	std::string entityLabel = std::to_string(entity->id());
+	ImGui::BeginChild(entityLabel.c_str(), ImVec2(0, 40), false);
+	ImGui::SameLine();
+	float entityColorR = static_cast<float>(entity->get<CShape>().circle.getFillColor().r) / 255;
+	float entityColorG = static_cast<float>(entity->get<CShape>().circle.getFillColor().g) / 255;
+	float entityColorB = static_cast<float>(entity->get<CShape>().circle.getFillColor().b) / 255;
+	ImGui::PushStyleColor(ImGuiCol_Button, ImVec4(entityColorR, entityColorG, entityColorB, 0.5f));       // Background
+	ImGui::PushStyleColor(ImGuiCol_ButtonHovered, ImVec4(entityColorR, entityColorG, entityColorB, 0.75f)); // On hover
+	ImGui::PushStyleColor(ImGuiCol_ButtonActive, ImVec4(entityColorR, entityColorG, entityColorB, 0.25f));  // On click
+	if (ImGui::Button("D"))
+	{
+		entity->destroy();
+	}
+	ImGui::PopStyleColor(3); // Pop all 3 colors (active, hovered, base)
+	ImGui::SameLine();
+	ImGui::Text(entityLabel.c_str());
+	ImGui::SameLine();
+	ImGui::Text(entity->tag().c_str());
+	ImGui::SameLine();
+	auto& transform = entity->get<CTransform>();
+	ImGui::Text(("(" + std::to_string(static_cast<int>(std::floorf(transform.pos.x))) + ", " + std::to_string(static_cast<int>(std::floorf(transform.pos.y))) + ")").c_str());
+	ImGui::SameLine();
+	ImGui::Text(("(" + std::to_string(static_cast<int>(std::floorf(transform.velocity.x))) + ", " + std::to_string(static_cast<int>(std::floorf(transform.velocity.x))) + ")").c_str());
+	ImGui::EndChild();
 }
 
 void Game::sGUI()
@@ -391,7 +422,7 @@ void Game::sGUI()
 			ImGui::Checkbox("Lifespan", &m_guiConfig.activeLifespan);
 			ImGui::Checkbox("Collision", &m_guiConfig.activeCollision);
 			ImGui::Checkbox("Spawning", &m_guiConfig.activeSpawning);
-			ImGui::SliderInt("Spawn Time", &m_enemyConfig.SP, 0, 300);
+			ImGui::SliderInt("Spawn Time", &m_enemyConfig.SP, 1, 300);
 			if (ImGui::Button("Manual Spawn"))
 			{
 				spawnEnemy();
@@ -407,18 +438,7 @@ void Game::sGUI()
 					if (ImGui::CollapsingHeader(tag.c_str())) {
 						for (const auto& entity : vec)
 						{
-							std::string entityLabel = std::to_string(entity->id());
-							ImGui::BeginChild(entityLabel.c_str(), ImVec2(0, 50), true);
-							ImGui::SameLine();
-							ImGui::Text(entityLabel.c_str());
-							ImGui::SameLine();
-							ImGui::Text(tag.c_str());
-							ImGui::SameLine();
-							auto& transform = entity->get<CTransform>();
-							ImGui::InputFloat2("Position" , &transform.pos.x);
-							ImGui::SameLine();
-							ImGui::InputFloat2("Velocity", &transform.velocity.x);
-							ImGui::EndChild();
+							sEntityList(entity);
 						}
 					}
 				}
@@ -426,16 +446,7 @@ void Game::sGUI()
 			if (ImGui::CollapsingHeader("All Entities")) {
 				for (const auto& entity : m_entities.getEntities())
 				{
-					std::string entityLabel = std::to_string(entity->id());
-					ImGui::BeginChild(entityLabel.c_str(), ImVec2(0, 50), true);
-					ImGui::SameLine();
-					ImGui::Text(entity->tag().c_str());
-					ImGui::SameLine();
-					auto& transform = entity->get<CTransform>();
-					ImGui::InputFloat2("Position", &transform.pos.x);
-					ImGui::SameLine();
-					ImGui::InputFloat2("Velocity", &transform.velocity.x);
-					ImGui::EndChild();
+					sEntityList(entity);
 				}
 			}
 			ImGui::EndTabItem();
@@ -456,6 +467,10 @@ void Game::sRender()
 		entity->get<CShape>().circle.setRotation(entity->get<CTransform>().angle);
 		m_window.draw(entity->get<CShape>().circle);
 	}
+
+	// To display text on the sfml window for amount of points
+	m_text.setString("Points: " + std::to_string(m_score));
+	m_window.draw(m_text);
 	// draw the ui last
 	ImGui::SFML::Render(m_window);
 

@@ -39,6 +39,7 @@ class Game
 	void sUserInput(); // System: User Input
 	void sLifespan(); // System: Lifespan
 	void sRender(); // System: Render / Drawing
+	void sEntityList(std::shared_ptr<Entity> entity);
 	void sGUI();
 	void sEnemySpawner(); //System: Spawns Enemies
 	void sCollision(); // System: Collisions

@@ -15,11 +15,9 @@ class EntityManager
     {
         // remove all dead entities from the input vector
         // this is called by the update() function
-        // std::remove_if
         EntityVec newVec;
         for (auto &entity : vec)
         {
-            // vec.erase(std::remove_if(vec.begin(), vec.end(), [](Entity& ent) { return ent.m_active == false; }), vec.end());
             if (entity.get()->m_active == true)
             {
                 newVec.push_back(entity);
