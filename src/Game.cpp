@@ -209,7 +209,7 @@ void Game::spawnSmallEnemies(std::shared_ptr<Entity> e)
 		// The speed has to be the same otherwise when the big enemy is destoryed it does not retain its orginial shape
 		float speedOfEdgeX = m_enemyConfig.SMIN/4 * cos(angleOfEdge);
 		float speedOfEdgeY = m_enemyConfig.SMIN/4 * sin(angleOfEdge);
-		std::cout << numberOfEdges << " " << numberOfEdge << " " << posOfEdgeX << " " << posOfEdgeY << " " << angleOfEdge << std::endl;
+		//std::cout << numberOfEdges << " " << numberOfEdge << " " << posOfEdgeX << " " << posOfEdgeY << " " << angleOfEdge << std::endl;
 		smallEnemy->add<CTransform>(Vec2f(bigEnemyTrans.pos.x, bigEnemyTrans.pos.y), Vec2f(speedOfEdgeX, speedOfEdgeY), angleOfEdge);
 		smallEnemy->add<CShape>(m_enemyConfig.SR / 2, numberOfEdges, bigEnemyShape.circle.getFillColor(), bigEnemyShape.circle.getOutlineColor(), bigEnemyShape.circle.getOutlineThickness());
 		smallEnemy->add<CLifespan>(m_enemyConfig.L);
@@ -510,6 +510,11 @@ void Game::sUserInput()
 		{
 			m_guiConfig.activeGUI = !m_guiConfig.activeGUI;
 		}
+		// pressing the esc key will close the game
+		if (event.type == sf::Event::KeyPressed && event.key.code == sf::Keyboard::Escape)
+		{
+			m_running = false;
+		}
 
 		// update view if the player resize the window
 		if (event.type == sf::Event::Resized) {
@@ -527,7 +532,7 @@ void Game::sUserInput()
 
 			if (event.mouseButton.button == sf::Mouse::Left)
 			{
-				std::cout << "Left Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")\n";
+				//std::cout << "Left Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")\n";
 				input.shoot = true;
 				spawnBullet(player(), Vec2f(event.mouseButton.x, event.mouseButton.y));
 			}
