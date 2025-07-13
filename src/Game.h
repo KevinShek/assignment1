@@ -18,6 +18,7 @@ struct GuiConfig { bool activeMovement = true; bool activeLifespan = true; bool 
 class Game
 {
 	sf::RenderWindow m_window; // the window we will draw to
+	int m_framerate;
 	EntityManager m_entities; // vector of entities to maintain
 	sf::Font m_font; // the font we will use to draw
 	sf::Text m_text; // the score text to be drawn to the screen
@@ -40,6 +41,7 @@ class Game
 	void sLifespan(); // System: Lifespan
 	void sRender(); // System: Render / Drawing
 	void sEntityList(std::shared_ptr<Entity> entity);
+	void sSpecialWeaponRecharge();
 	void sGUI();
 	void sEnemySpawner(); //System: Spawns Enemies
 	void sCollision(); // System: Collisions
@@ -48,9 +50,10 @@ class Game
 	void spawnEnemy();
 	void spawnSmallEnemies(std::shared_ptr<Entity> entity);
 	void spawnBullet(std::shared_ptr<Entity> entity, const Vec2f& mousePos);
-	void spawnSpecialWeapon(std::shared_ptr<Entity> entity);
+	void spawnSpecialWeapon(std::shared_ptr<Entity> entity, bool notFirstActive);
 
 	std::shared_ptr<Entity> player();
+	std::shared_ptr<Entity> shield();
 
 public:
 

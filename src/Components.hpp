@@ -75,4 +75,13 @@ public:
     CInput() = default;
 };
 
-// make a special weapon component within this file, watch the video to learn more about this
+class ShieldRecharge : public Component
+{
+public:
+    float timeForRecharge;
+    float timeLeftToActivate;
+    bool inUse;
+
+    ShieldRecharge() = default;
+    ShieldRecharge(float recharge, float timeRemainingToActivate, bool Using) : timeForRecharge(recharge), timeLeftToActivate(timeRemainingToActivate), inUse(Using) {}
+};

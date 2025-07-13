@@ -14,7 +14,7 @@ void Game::init(const std::string &path)
 {
 	// variables for reading
 	std::string rowType;
-	int winWidth = 1280, winHeight = 720, winFramerate = 60, winFullscreen = 0;
+	int winWidth = 1280, winHeight = 720, winFullscreen = 0;
 	std::string fontPath;
 	int fontSize, fontR, fontG, fontB;
 
@@ -27,7 +27,7 @@ void Game::init(const std::string &path)
 	while (fin >> rowType)
 	{
 		if (rowType == "Window") {
-			fin >> winWidth >> winHeight >> winFramerate >> winFullscreen;
+			fin >> winWidth >> winHeight >> m_framerate >> winFullscreen;
 		}
 		else if (rowType == "Font") {
 			fin >> fontPath >> fontSize >> fontR >> fontG >> fontB;
@@ -62,7 +62,7 @@ void Game::init(const std::string &path)
 	if (winFullscreen == 1) {
 		m_window.create(sf::VideoMode::getFullscreenModes()[0], "Assignment 2", sf::Style::Fullscreen);
 	}
-	m_window.setFramerateLimit(winFramerate);
+	m_window.setFramerateLimit(m_framerate);
 	ImGui::SFML::Init(m_window);
 
 	// scale the imgui ui and text size by 2
@@ -70,6 +70,7 @@ void Game::init(const std::string &path)
 	ImGui::GetIO().FontGlobalScale = 2.0f;
 
 	spawnPlayer();
+	spawnSpecialWeapon(player(), false);
 }
 
 std::shared_ptr<Entity> Game::player()
@@ -77,6 +78,13 @@ std::shared_ptr<Entity> Game::player()
 	auto &&players = m_entities.getEntities("player");
 
 	return players.front();
+}
+
+std::shared_ptr<Entity> Game::shield()
+{
+	auto&& shield = m_entities.getEntities("shield");
+
+	return shield.front();
 }
 
 void Game::run()
@@ -109,6 +117,7 @@ void Game::run()
 			if (m_guiConfig.activeLifespan) {
 				sLifespan();
 			}
+			sSpecialWeaponRecharge();
 		}
 		sUserInput();
 		if (m_guiConfig.activeGUI) {
@@ -235,9 +244,23 @@ void Game::spawnBullet(std::shared_ptr<Entity> entity, const Vec2f &target)
 	bullet->add<CLifespan>(m_bulletConfig.L);
 }
 
-void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity)
+void Game::spawnSpecialWeapon(std::shared_ptr<Entity> entity, bool notFirstActive)
 {
-	// TODO: implement your own special weapon
+	if (notFirstActive == false) {
+		auto shield = m_entities.addEntity("shield");
+		shield->add<CTransform>(Vec2f(entity->get<CTransform>().pos.x, entity->get<CTransform>().pos.y), Vec2f(0, 0), 0);
+		shield->add<CShape>(m_playerConfig.SR * 1.5, 64, sf::Color::Transparent, sf::Color::White, 3.f);
+		shield->get<CShape>().circle.setOutlineColor(sf::Color(shield->get<CShape>().circle.getOutlineColor().r, shield->get<CShape>().circle.getOutlineColor().g, shield->get<CShape>().circle.getOutlineColor().b, 0));
+		shield->add<CCollision>(m_playerConfig.CR * 1.5);
+		shield->add<CLifespan>(m_framerate * 10);
+		shield->get<CLifespan>().remaining = 0;
+		shield->add<ShieldRecharge>(m_framerate * 30, 0, notFirstActive);
+	}
+	else {
+		shield()->get<CShape>().circle.setOutlineColor(sf::Color(shield()->get<CShape>().circle.getOutlineColor().r, shield()->get<CShape>().circle.getOutlineColor().g, shield()->get<CShape>().circle.getOutlineColor().b, 255));
+		shield()->get<ShieldRecharge>().inUse = notFirstActive;
+		shield()->get<CLifespan>().remaining = m_framerate * 10;
+	}
 }
 
 void Game::sMovement()
@@ -271,9 +294,11 @@ void Game::sMovement()
 	transform.pos.y = std::max(static_cast<float>(m_playerConfig.SR), std::min(transform.pos.y, static_cast<float>(m_window.getSize().y - m_playerConfig.SR)));
 
 	for (auto& entity : m_entities.getEntities()) {
-
 		auto& entityMovement = entity->get<CTransform>();
 		entityMovement.pos += entityMovement.velocity;
+		if (entity->tag() == "shield") {
+			entityMovement.pos = transform.pos;
+		}
 	}
 }
 
@@ -285,15 +310,31 @@ void Game::sLifespan()
 		auto& entityLifeSpan = entity->get<CLifespan>();
 			if (entityLifeSpan.remaining != 0) {
 				entityLifeSpan.remaining --;
-				float ratio = static_cast<float>(entityLifeSpan.remaining) / static_cast<float>(entityLifeSpan.lifespan);
-				float transparentValue = ratio * 255.f;  // fades out
-				entity->get<CShape>().circle.setFillColor(sf::Color(entityShape.circle.getFillColor().r, entityShape.circle.getFillColor().g, entityShape.circle.getFillColor().b, transparentValue));
-				entity->get<CShape>().circle.setOutlineColor(sf::Color(entityShape.circle.getOutlineColor().r, entityShape.circle.getOutlineColor().g, entityShape.circle.getOutlineColor().b, transparentValue));
+				if (entity->tag() != "shield") {
+					float ratio = static_cast<float>(entityLifeSpan.remaining) / static_cast<float>(entityLifeSpan.lifespan);
+					float transparentValue = ratio * 255.f;  // fades out
+					entity->get<CShape>().circle.setFillColor(sf::Color(entityShape.circle.getFillColor().r, entityShape.circle.getFillColor().g, entityShape.circle.getFillColor().b, transparentValue));
+					entity->get<CShape>().circle.setOutlineColor(sf::Color(entityShape.circle.getOutlineColor().r, entityShape.circle.getOutlineColor().g, entityShape.circle.getOutlineColor().b, transparentValue));
+				}
 			}
 			else {
-				entity->destroy();
+				if (entity->tag() != "shield") {
+					entity->destroy();
+				}
+				else {
+					entity->get<ShieldRecharge>().inUse = false;
+					entity->get<CShape>().circle.setOutlineColor(sf::Color(entityShape.circle.getOutlineColor().r, entityShape.circle.getOutlineColor().g, entityShape.circle.getOutlineColor().b, 0));
+				}
 			}
 		}
+	}
+}
+
+void Game::sSpecialWeaponRecharge()
+{
+	auto& shieldProp = shield()->get<ShieldRecharge>();
+	if (shieldProp.inUse == false && shieldProp.timeLeftToActivate != shieldProp.timeForRecharge) {
+		shieldProp.timeLeftToActivate++;
 	}
 }
 
@@ -301,60 +342,30 @@ void Game::sCollision()
 {
 	// implement all proper collisions between entities
 	// be sure to use the collision radius, NOT the shape radius
-	for (auto& bullet : m_entities.getEntities("bullet")) {
-		auto& bulletProp = bullet->get<CTransform>();
-		//bulletProp.pos
-		for (auto& enemy : m_entities.getEntities("enemy")) {
-			// this is to ensure that this is only performed once if the enemy is active
-			if (enemy.get()->isActive() && bullet.get()->isActive()) {
-				auto& enemyProp = enemy->get<CTransform>();
-				Vec2f vectorOfEntities = { (enemyProp.pos.x - bulletProp.pos.x), (enemyProp.pos.y - bulletProp.pos.y) };
-				float distanceOfEntities = std::sqrt(vectorOfEntities.x * vectorOfEntities.x + vectorOfEntities.y * vectorOfEntities.y);
-				if (bullet->get<CCollision>().radius + enemy->get<CCollision>().radius > distanceOfEntities) {
-					enemy->destroy();
-					bullet->destroy();
-					spawnSmallEnemies(enemy);
-					m_score += enemy->get<CScore>().score;
-				}
-			}
-		}
-		for (auto& smallEnemy : m_entities.getEntities("senemy")) {
-			// this is to ensure that this is only performed once if the enemy is active
-			if (smallEnemy.get()->isActive() && bullet.get()->isActive()) {
-				auto& smallEnemyProp = smallEnemy->get<CTransform>();
-				Vec2f vectorOfSmallEntities = { (smallEnemyProp.pos.x - bulletProp.pos.x), (smallEnemyProp.pos.y - bulletProp.pos.y) };
-				float distanceOfSmallEntities = std::sqrt(vectorOfSmallEntities.x * vectorOfSmallEntities.x + vectorOfSmallEntities.y * vectorOfSmallEntities.y);
-				if (bullet->get<CCollision>().radius + smallEnemy->get<CCollision>().radius > distanceOfSmallEntities) {
-					smallEnemy->destroy();
-					bullet->destroy();
-					m_score += smallEnemy->get<CScore>().score;
-				}
-			}
-		}
-	}
-	for (auto& player : m_entities.getEntities("player")) {
-		for (auto& enemy : m_entities.getEntities("enemy")) {
-			// this is to ensure that this is only performed once if the enemy is active
-			if (enemy.get()->isActive()) {
-				auto& enemyProp = enemy->get<CTransform>();
-				Vec2f vectorOfEnemyandPlayer = { (enemyProp.pos.x - player->get<CTransform>().pos.x), (enemyProp.pos.y - player->get<CTransform>().pos.y) };
-				float distanceOfEnemyandPlayer = std::sqrt(vectorOfEnemyandPlayer.x * vectorOfEnemyandPlayer.x + vectorOfEnemyandPlayer.y * vectorOfEnemyandPlayer.y);
-				if (player->get<CCollision>().radius + enemy->get<CCollision>().radius > distanceOfEnemyandPlayer) {
-					enemy->destroy();
-					player->destroy();
-					spawnSmallEnemies(enemy);
-				}
-			}
-		}
-		for (auto& smallEnemy : m_entities.getEntities("senemy")) {
-			// this is to ensure that this is only performed once if the enemy is active
-			if (smallEnemy.get()->isActive()) {
-				auto& smallEnemyProp = smallEnemy->get<CTransform>();
-				Vec2f vectorOfEnemyandPlayer = { (smallEnemyProp.pos.x - player->get<CTransform>().pos.x), (smallEnemyProp.pos.y - player->get<CTransform>().pos.y) };
-				float distanceOfEnemyandPlayer = std::sqrt(vectorOfEnemyandPlayer.x * vectorOfEnemyandPlayer.x + vectorOfEnemyandPlayer.y * vectorOfEnemyandPlayer.y);
-				if (player->get<CCollision>().radius + smallEnemy->get<CCollision>().radius > distanceOfEnemyandPlayer) {
-					smallEnemy->destroy();
-					player->destroy();
+	for (auto& collidingEntity : m_entities.getEntities()) {
+		if (collidingEntity->tag() == "bullet" or collidingEntity->tag() == "player" or (collidingEntity->tag() == "shield" && collidingEntity->get<ShieldRecharge>().inUse)) {
+			auto& collidingEntityProp = collidingEntity->get<CTransform>();
+			//bulletProp.pos
+			for (auto& collidedEntity : m_entities.getEntities()) {
+				if (collidedEntity->tag() == "enemy" or collidedEntity->tag() == "senemy") {
+					auto& collidedEntityProp = collidedEntity->get<CTransform>();
+					Vec2f vectorOfEntities = { (collidedEntityProp.pos.x - collidingEntityProp.pos.x), (collidedEntityProp.pos.y - collidingEntityProp.pos.y) };
+					float distanceOfEntities = std::sqrt(vectorOfEntities.x * vectorOfEntities.x + vectorOfEntities.y * vectorOfEntities.y);
+					// this is to ensure that this is only performed once if the enemy is active
+					if (collidedEntity.get()->isActive() && collidingEntity.get()->isActive()) {
+						if (collidingEntity->get<CCollision>().radius + collidedEntity->get<CCollision>().radius > distanceOfEntities) {
+							collidedEntity->destroy();
+							if (collidingEntity->tag() != "shield") {
+								collidingEntity->destroy();
+							}
+							if (collidedEntity->tag() == "enemy") {
+								spawnSmallEnemies(collidedEntity);
+							}
+							if (collidingEntity->tag() != "player") {
+								m_score += collidedEntity->get<CScore>().score;
+							}
+						}
+					}
 				}
 			}
 		}
@@ -470,7 +481,46 @@ void Game::sRender()
 
 	// To display text on the sfml window for amount of points
 	m_text.setString("Points: " + std::to_string(m_score));
+	m_text.setPosition(0, 0);
 	m_window.draw(m_text);
+
+	// display time remaining till next special move to be active
+	float percentage = shield()->get<ShieldRecharge>().timeLeftToActivate / shield()->get<ShieldRecharge>().timeForRecharge;
+	float barWidth = 200.f;
+	float barHeight = 25.f;
+	float barX = 0.f;
+	float barY = 40.f;
+	sf::Text loadingBarText = m_text;
+
+	// Background bar (gray)
+	sf::RectangleShape backgroundBar(sf::Vector2f(barWidth, barHeight));
+	backgroundBar.setFillColor(sf::Color(100, 100, 100));
+	backgroundBar.setPosition(barX, barY);
+	m_window.draw(backgroundBar);
+
+	// Foreground bar (colored fill showing progress)
+	sf::RectangleShape fillBar(sf::Vector2f(barWidth * percentage, barHeight));
+	loadingBarText.setPosition(barX + (barWidth / 5), barY);
+	loadingBarText.setCharacterSize(15);
+	loadingBarText.setFillColor(sf::Color::White);
+	loadingBarText.setOutlineColor(sf::Color::Black);
+	loadingBarText.setOutlineThickness(2.f);
+	if (percentage == 1) {
+		loadingBarText.setString("Ready!");
+		fillBar.setFillColor(sf::Color::Green);
+	}
+	else if (percentage == 0) {
+		loadingBarText.setString("Power in Use!");
+		fillBar.setFillColor(sf::Color::White);
+	}
+	else {
+		loadingBarText.setString("Charging Power");
+		fillBar.setFillColor(sf::Color::White);
+	}
+	fillBar.setPosition(barX, barY);
+	m_window.draw(fillBar);
+	m_window.draw(loadingBarText);
+
 	// draw the ui last
 	ImGui::SFML::Render(m_window);
 
@@ -533,14 +583,15 @@ void Game::sUserInput()
 			if (event.mouseButton.button == sf::Mouse::Left)
 			{
 				//std::cout << "Left Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")\n";
-				input.shoot = true;
 				spawnBullet(player(), Vec2f(event.mouseButton.x, event.mouseButton.y));
 			}
 
 			if (event.mouseButton.button == sf::Mouse::Right)
 			{
-				std::cout << "Right Mouse Button Clicked at (" << event.mouseButton.x << "," << event.mouseButton.y << ")\n";
-				// call spawnSpecialWeapon here
+				if (shield()->get<ShieldRecharge>().inUse == false && shield()->get<ShieldRecharge>().timeLeftToActivate == shield()->get<ShieldRecharge>().timeForRecharge) {
+					shield()->get<ShieldRecharge>().timeLeftToActivate = 0;
+					spawnSpecialWeapon(player(), true);
+				}
 			}
 		}
 	}
