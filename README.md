@@ -1,5 +1,5 @@
 # Description of this Repo
-This personal repository is aimmed for completing the assignments following Dave Churchill COMP4300 lessons: https://www.youtube.com/playlist?list=PL_xRyXins84_Sq7yZkxGP_MgYAH-Zo8Uu
+This personal repository is aimmed for completing the assignments following Dave Churchill COMP4300 lessons: https://www.youtube.com/playlist?list=PL_xRyXins84_Sq7yZkxGP_MgYAH-Zo8Uu.
 There will be a branch for each assignment as I am working it through, with main being assignment 1.
 The main objective was to learn about game programming with C++.
 
