@@ -1,4 +1,4 @@
-# Simple 2D Game
+# Assignment 2 Description (2D game)
 Learning game programming with C++ from COMP4300 Game Programming course found on youtube - https://youtu.be/-ugbLQlw_VM?si=0Ri8qIUXbwopQyPa
 
 ## Build from source
