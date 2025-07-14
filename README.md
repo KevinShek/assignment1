@@ -36,7 +36,6 @@ From assignment specification in course/video.
 - Unique game mechanic?
 - Cooldown timer for using this
 
-
 ## Enemies
 - Spawn in a random location on screen every X frames, X is defined in config
 - Shouldn't overlap sides of screen at time of spawn
@@ -51,7 +50,6 @@ From assignment specification in course/video.
 - Each time enemy spawns, it's given a score components of num_vertices*100. Small enemies get double this value each
 - Player destroying an enemy adds the relevant score
 - Current score should be displayed at top-left corner of screen, with font specified in config
-
 
 ## Drawing
 - All entities should be given a slow rotation (mostly just visuals, won't be accounted for in collision)
@@ -70,43 +68,51 @@ From assignment specification in course/video.
 ## Config file
 Has one line each specifying the window size, font format, player, bullet specification, and enemy specifications.
 
-Lines given in that order with syntax:
+Lines given in order of how the config was laid out for each entity:
 
-Window W H FL FS
-- SFML window must be constructed with width W and height H (integers). FL (int) is frame limit, FS (int 1,0) specifies whether to display the application in full-screen mode.
+|Window's Specification | Variable | Variable Type|
+| :-- | :-: | :-: |
+| Width | W | int | 
+| Height | H | int |
+| Framerate | FL | int |
+| Fullscreen | FS | int |
 
-Font F S R G B
-- Font File     F       std::string (no space)
-- Font Size     S       int
-- RGB Color     (R,G,B) int, int, int
+|Font's Specification | Variable | Variable Type|
+| :-- | :-: | :-: |
+| Font File     | F       | std::string |
+| Font Size     | S       | int |
+| RGB Color     | R,G,B | int, int, int |
 
-Player SR CR S FR FG FB OR OG OB OT V
-- Shape Radius      SR          int
-- Collision Radius  CR          int
-- Speed             S           float
-- Fill Color        FR,FG,FB    int,int,int
-- Outline Color     OR,OG,OB    int,int,int
-- Shape Vertices    V           int
+|Player's Specification | Variable | Variable Type|
+| :-- | :-: | :-: |
+| Shape Radius      |SR          |int|
+| Collision Radius  |CR          |int|
+| Speed             |S           |float|
+| Fill Color        |FR,FG,FB    |int,int,int|
+| Outline Color     |OR,OG,OB    |int,int,int|
+| Shape Vertices    |V           |int|
 
-Enemy SR CR SMIN SMAX OR OG OB OT VMIN VMAX L SI
-- Shape Radius          SR          int
-- Collision Radius      CR          int
-- Min/Max Speed         SMIN,SMAX   float,float
-- Outline Color         OR,OG,OB    int,int,int
-- Outline Thickness     OT          int
-- Min/Max Vertices      VMIN,VMAX   int,int
-- Small Lifespan        L           int
-- Spawn Interval        SI          int
+|Enemy's Specification | Variable | Variable Type|
+| :-- | :-: | :-: |
+| Shape Radius          |SR          |int|
+| Collision Radius      |CR          |int|
+| Min/Max Speed         |SMIN,SMAX   |float,float|
+| Outline Color         |OR,OG,OB    |int,int,int|
+| Outline Thickness     |OT          |int|
+| Min/Max Vertices      |VMIN,VMAX   |int,int|
+| Small Lifespan        |L           |int|
+| Spawn Interval        |SI          |int|
 
-Bullet SR CR S FR FG FB OR OG OB OT V L
-- Shape Radius          SR          int
-- Collision Radius      CR          int
-- Speed                 S           float
-- Fill Color            FR,FG,FB    int,int,int
-- Outline Color         OR,OG,OB    int,int,int
-- Outline Thickness     OT          int
-- Shape Vertices        V           int
-- Lifespan              L           Int
+|Bullet's Specification | Variable | Variable Type|
+| :-- | :-: | :-: |
+| Shape Radius          |SR          |int|
+| Collision Radius      |CR          |int|
+| Speed                 |S           |float|
+| Fill Color            |FR,FG,FB    |int,int,int|
+| Outline Color         |OR,OG,OB    |int,int,int|
+| Outline Thickness     |OT          |int|
+| Shape Vertices        |V           |int|
+| Lifespan              |L           |Int|
 
 
 # Controls
